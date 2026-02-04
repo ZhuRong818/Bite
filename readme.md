@@ -1,227 +1,311 @@
 
-# Bite — AI-Powered Food Scanner (MVP)
 
-## Overview
+# Bite — VIP MVP Setup Guide (Laptop + Phone)
 
-**Bite** is an AI-powered food scanning application designed specifically for **Singapore and Asian food products**.
-Unlike existing Western-focused nutrition apps, Bite analyzes **local packaged foods** using ingredient-level understanding aligned with **Health Promotion Board (HPB) dietary guidance**.
+## Purpose
 
-The MVP validates the core pipeline:
+This repository contains a working VIP MVP of **Bite**, a mobile food scanner that supports:
 
-* Barcode scanning
-* Ingredient label OCR
-* Ingredient understanding
-* Health risk flagging
-* Self-improving product database
+1. **Barcode scanning** (camera) → product lookup (local mock data)
+2. **Ingredient label scanning** (camera photo) → OCR extraction → ingredient risk flags
+3. A simple backend API + local database skeleton for future expansion
 
-This repository contains both the **backend (AI + API)** and a **React Native frontend (Expo)** for end-to-end demonstration.
+The goal is an end-to-end demo that can run on a **real phone** with a clean, minimal UI.
 
 ---
 
-## Key Features (MVP)
-
-### 1. Barcode Scanning
-
-* Scan or manually enter food barcodes
-* Retrieve product information from a Singapore-focused database
-* Handle unknown products by creating *pending entries*
-
-### 2. Ingredient Label Scanning (OCR)
-
-* Capture ingredient labels via camera or photo upload
-* OCR extracts raw ingredient text
-* Designed for real-world packaging (varied fonts, lighting, layouts)
-
-### 3. Ingredient Understanding & Health Analysis
-
-* Normalizes ingredient text into structured components
-* Flags potential health risks based on ingredient cues:
-
-  * Added sugars
-  * High sodium indicators
-  * Saturated fat sources
-  * Additives and allergens
-* Produces **non-medical**, explainable health guidance
-
-### 4. Self-Improving Database
-
-* Products not found via barcode can be enriched using label scans
-* Each scan improves coverage and accuracy over time
-* Enables network effects as usage grows
-
----
-
-## System Architecture
-
-```text
-Mobile App (React Native / Expo)
-        ↓
-Flask REST API (Backend)
-        ↓
-OCR (EasyOCR) + Ingredient Parsing
-        ↓
-Health Scoring Engine (HPB-aligned rules)
-        ↓
-SQLite Product & Ingredient Database
-```
-
----
-
-## Repository Structure
+## Repo Structure
 
 ```text
 Bite/
 ├── backend/
-│   ├── app.py              # Flask API server
-│   ├── db.py               # SQLite database logic
-│   ├── scoring.py          # Ingredient normalization & health scoring
-│   ├── ocr.py              # OCR pipeline
-│   ├── seed.py             # Seed database script
+│   ├── app.py
 │   ├── requirements.txt
-│   └── data/
-│       └── products_seed.csv
-│
-├── frontend/
-│   ├── App.tsx             # React Native Expo app
-│   ├── src/
-│   │   ├── api.ts
-│   │   └── config.ts
-│   └── package.json
-│
-└── README.md
+│   └── (other backend files)
+└── frontend/
+    ├── App.tsx
+    ├── package.json
+    └── src/
+        ├── config.ts
+        └── api.ts
 ```
 
 ---
 
-## Backend Setup
+## Prerequisites
 
-### Prerequisites
+### Laptop
 
 * Python 3.9+
-* `pip`
-* Virtual environment recommended
+* Node.js 18+
+* npm
+* Expo Go installed on your phone
 
-### Installation
+### Phone
+
+* Expo Go (iOS / Android)
+* Camera permission enabled
+
+---
+
+## Step 1 — Start the Backend (Laptop)
+
+Open a terminal and run:
 
 ```bash
 cd backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-```
-
-### Initialize Database
-
-```bash
-python seed.py
-```
-
-This seeds the database with a small set of Singapore/Asian products for demo purposes.
-
-### Run Backend Server
-
-```bash
 python app.py
 ```
 
-Backend runs at:
+### Must-have: backend binds to all interfaces
 
-```text
-http://localhost:5000
+In `backend/app.py`, make sure Flask runs like this:
+
+```py
+app.run(host="0.0.0.0", port=5000, debug=True)
 ```
+
+This is required for phone access. If it binds to `127.0.0.1`, the phone cannot connect.
 
 ---
 
-## Frontend Setup (React Native / Expo)
+## Step 2 — Connect Laptop and Phone to the Same Network
 
-### Prerequisites
+You have two options:
 
-* Node.js 18+
-* Expo CLI
-* Expo Go app (iOS / Android)
+### Option A (Recommended): Use Your Phone Hotspot
 
-### Installation
+1. Turn on hotspot on your phone.
+2. Connect your laptop Wi-Fi to the hotspot.
+
+Now your phone and laptop are guaranteed to be on the same network.
+
+### Option B: Use Home / Campus Wi-Fi
+
+* Ensure your laptop and phone are on the **same Wi-Fi**.
+* Some networks block device-to-device traffic. If it fails, switch to hotspot.
+
+---
+
+## Step 3 — Find Your Laptop IP Address (Very Important)
+
+The frontend must call your backend using your laptop’s IP, not `localhost`.
+
+On macOS, run:
+
+```bash
+ipconfig getifaddr en0
+```
+
+Example output:
+
+```text
+172.20.10.12
+```
+
+That is your laptop IP address.
+
+---
+
+## Step 4 — Configure Frontend API URL (Laptop)
+
+Edit this file:
+
+```text
+frontend/src/config.ts
+```
+
+Set:
+
+```ts
+export const API_BASE = "http://172.20.10.12:5000";
+```
+
+Replace `172.20.10.12` with the IP from Step 3.
+
+### Important Notes
+
+* Do not use `localhost`
+* Do not use `127.0.0.1`
+* The Expo URL (often port 8081) is not your backend
+
+---
+
+## Step 5 — Start the Frontend (Laptop)
+
+Open another terminal and run:
 
 ```bash
 cd frontend
 npm install
-```
-
-### Configure Backend URL
-
-Set the backend URL (pick one):
-
-Option A: set an Expo env var before starting:
-
-```bash
-EXPO_PUBLIC_API_BASE="http://<YOUR_LAPTOP_IP>:5000" npx expo start
-```
-
-Option B: edit `src/config.ts`:
-
-```ts
-export const API_BASE = "http://<YOUR_LAPTOP_IP>:5000";
-```
-
-> Note: `localhost` does not work on physical mobile devices.
-> Use your computer’s local IP (same Wi-Fi network).
-
-### Run Frontend
-
-```bash
 npx expo start
 ```
 
-Scan the QR code using **Expo Go**.
+### Open Expo DevTools on the web
+
+When Expo starts, press:
+
+```text
+w
+```
+
+This opens Expo DevTools in your browser.
 
 ---
 
-## How to Use (Demo Flow)
+## Step 6 — Open the App on Your Phone
 
-### Barcode Scan
+1. Open **Expo Go** on your phone
+2. Scan the QR code shown in your terminal / DevTools
+3. Allow camera permission
 
-1. Open the app
-2. Scan a barcode using the camera
-3. If product exists → view health analysis
-4. If product is new → prompted to upload ingredient label
-
-### Ingredient Label Scan
-
-1. Take or upload a photo of the ingredient list
-2. OCR extracts ingredients
-3. App displays health risk flags
-4. Product is saved and enriched in the database
+You should now see the Bite MVP home screen.
 
 ---
 
-## Health Scoring Disclaimer
+## Testing Checklist
 
-Bite provides **ingredient-based health guidance**, not medical advice.
+### Test A: Backend reachable from phone
 
-* No calorie counting or diagnosis
-* No disease-specific recommendations
-* Designed for awareness and informed choices
+On your phone browser (Safari/Chrome), open:
 
-Users should always consult packaging labels and healthcare professionals when needed.
+```text
+http://<YOUR_LAPTOP_IP>:5000
+```
+
+Example:
+
+```text
+http://172.20.10.12:5000
+```
+
+If this does not load, the app will not work. Fix network first.
+
+### Test B: Barcode scan
+
+* Tap **Scan Barcode**
+* Scan a real barcode (or your seeded barcode)
+* You should see a result screen with product information
+
+### Test C: Ingredient label scan (OCR)
+
+* Tap **Scan Label / Upload Label**
+* Take a photo of an ingredient list
+* You should see OCR text + health flags
 
 ---
 
-## Technical Highlights
+## Common Issues and Fixes
 
-* OCR pipeline optimized for noisy, real-world images
-* Rule-based ingredient interpretation (ML-ready)
-* Clear upgrade path to:
+### Issue 1: “Network request failed”
 
-  * YOLO-based ingredient panel detection
-  * Multilingual OCR (Chinese/English)
-  * Personalized dietary profiles
+**Cause:** Wrong API base URL or backend not reachable.
+
+**Fix:**
+
+1. Confirm phone browser can open:
+
+   ```text
+   http://<IP>:5000
+   ```
+2. Confirm backend is running with:
+
+   ```py
+   host="0.0.0.0"
+   ```
+3. Confirm `frontend/src/config.ts` uses the correct IP.
 
 ---
 
-## Future Work
+### Issue 2: “localhost works on laptop but not on phone”
 
-* YOLO-powered ingredient region detection
-* Expanded Singapore supermarket coverage
-* FairPrice product data integration
-* Premium features (personalized goals, history)
-* Corporate wellness pilots
+**Cause:** `localhost` on phone means the phone itself.
+
+**Fix:**
+Use laptop IP:
+
+```ts
+export const API_BASE = "http://<LAPTOP_IP>:5000";
+```
+
+---
+
+### Issue 3: Phone cannot open `http://<IP>:5000`
+
+**Most likely causes:**
+
+* Backend is bound to localhost only
+* macOS firewall blocks inbound connections
+* laptop and phone not on same network
+
+**Fix:**
+
+1. Ensure Flask uses:
+
+   ```py
+   app.run(host="0.0.0.0", port=5000)
+   ```
+2. Temporarily disable macOS firewall:
+
+   * System Settings → Network → Firewall → Off (test only)
+3. Use hotspot instead of Wi-Fi
+
+---
+
+### Issue 4: Expo shows `http://localhost:8081`
+
+**Explanation:**
+
+* `8081` is Expo Metro bundler (frontend JS server)
+* Your backend is still on port `5000`
+
+This is normal.
+
+---
+
+## Developer Notes
+
+### Why “host=0.0.0.0” is required
+
+To allow other devices (your phone) to reach the backend, Flask must listen on the laptop’s network interface, not only on loopback.
+
+### Why IP changes sometimes
+
+If you switch from Wi-Fi to hotspot (or reconnect), your IP may change. Repeat Step 3 and update `config.ts`.
+
+---
+
+## Quick Start Summary
+
+1. Start backend
+
+   ```bash
+   cd backend
+   source .venv/bin/activate
+   python app.py
+   ```
+
+2. Get IP
+
+   ```bash
+   ipconfig getifaddr en0
+   ```
+
+3. Set frontend API
+
+   ```ts
+   export const API_BASE = "http://<IP>:5000";
+   ```
+
+4. Start frontend
+
+   ```bash
+   cd frontend
+   npx expo start
+   ```
+
+5. Scan QR code in Expo Go
+
