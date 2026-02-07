@@ -32,11 +32,23 @@ export default function HomeScreen({ navigation }: Props) {
 
   async function doManualBarcode() {
     const code = barcode.trim();
-    if (!code) return Alert.alert("Missing barcode", "Please enter a barcode.");
+    console.log(code);
+    const LIST_OF_SPECIAL_CHARACTERS = ["$", "%", "#", "@", "!", "^", "&", "*","/","\\"];
+    if (!code || code == "") {
+      console.log("No barcode entered");
+      Alert.alert("Missing barcode", "Please enter a barcode.");
+      return;
+    }
+    // enforce checks on special characters to pre-emptively stop bad requests
+    if (LIST_OF_SPECIAL_CHARACTERS.some((char) => code.includes(char))) {
+      Alert.alert("Invalid barcode", "Barcodes cannot contain special characters.");
+      return;
+    }
 
     setBusy(true);
     try {
       const data = await scanBarcode(code);
+      
       navigation.navigate("Result", { title: "Barcode Result", payload: data });
     } catch (e: any) {
       Alert.alert("Error", e.message || "Failed");
