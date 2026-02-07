@@ -1,13 +1,19 @@
 import { API_BASE } from "./config";
 
+
 export async function scanBarcode(barcode: string) {
+
   const res = await fetch(`${API_BASE}/api/scan/barcode`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ barcode }),
+  }).catch((err) => {
+    console.error("Error during fetch for barcode scan:", err);
+    throw new Error("Network error during barcode scan");
   });
 
   const data = await res.json();
+  console.log("Received response from barcode scan:", data);
   if (!res.ok) throw new Error(data?.error || "Barcode scan failed");
   return data;
 }
