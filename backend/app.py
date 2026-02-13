@@ -6,6 +6,7 @@ from werkzeug.utils import secure_filename
 
 from db import init_db, get_product_by_barcode, upsert_product, save_product_ingredients, get_latest_ingredients_for_product, log_scan
 from scoring import build_analysis_payload, dumps_json
+from llm_filter import filter_ingredients
 from ocr import extract_text_from_image
 
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
@@ -183,7 +184,11 @@ def scan_label():
     if not raw_text:
         return jsonify({"error": "No text detected. Please retake photo with clearer ingredient list."}), 400
 
-    analysis_payload = build_analysis_payload(raw_text)
+    filtered_text, filter_status = filter_ingredients(raw_text)
+    analysis_payload = build_analysis_payload(filtered_text)
+    analysis_payload["ocr_text"] = raw_text
+    analysis_payload["filtered_text"] = filtered_text
+    analysis_payload["filter_status"] = filter_status
     analysis_json = dumps_json(analysis_payload)
 
     product_id = None
@@ -203,6 +208,7 @@ def scan_label():
             "barcode": None,
             "message": "OCR + analysis succeeded, but barcode missing. Provide barcode to save into product database.",
             "ocr_text": raw_text,
+            "filtered_text": filtered_text,
             "result": analysis_payload
         }
         log_scan(None, "label", json.dumps(payload, ensure_ascii=False))
@@ -215,6 +221,7 @@ def scan_label():
         "barcode": barcode,
         "product_id": product_id,
         "ocr_text": raw_text,
+        "filtered_text": filtered_text,
         "result": analysis_payload,
         "message": "Saved analysis to database (pending product if newly created)."
     }
