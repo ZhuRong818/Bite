@@ -1,3 +1,4 @@
+import { Platform } from "react-native";
 import { API_BASE } from "./config";
 
 
@@ -29,11 +30,18 @@ export async function uploadLabelImage(params: {
   if (params.name) form.append("name", params.name);
   if (params.brand) form.append("brand", params.brand);
 
-  form.append("image", {
-    uri: params.imageUri,
-    name: "label.jpg",
-    type: "image/jpeg",
-  } as any);
+  if (Platform.OS === "web") {
+    const resp = await fetch(params.imageUri);
+    const blob = await resp.blob();
+    const file = new File([blob], "label.jpg", { type: blob.type || "image/jpeg" });
+    form.append("image", file);
+  } else {
+    form.append("image", {
+      uri: params.imageUri,
+      name: "label.jpg",
+      type: "image/jpeg",
+    } as any);
+  }
 
   const res = await fetch(`${API_BASE}/api/scan/label`, {
     method: "POST",
